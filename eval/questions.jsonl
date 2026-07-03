@@ -1,0 +1,30 @@
+{"id":"q01","question":"What external accounting platform does the Financial Consolidation System integrate with?","expected":"QuickBooks Online (QBO)","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q02","question":"What two authentication mechanisms secure the REST API?","expected":"API Keys and JWT tokens","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q03","question":"What is the default value of DATABASE_URL?","expected":"sqlite:///./financial_data.db","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q04","question":"What is the default QBO_ENVIRONMENT setting?","expected":"sandbox","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q05","question":"Which HTTP endpoint runs financial consolidation for a set of companies?","expected":"POST /internal/consolidate","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q06","question":"What consolidation methods are supported?","expected":"Full, Equity, and Proportional","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q07","question":"When should the Equity consolidation method be used?","expected":"Associated companies with significant influence and less than 50% ownership","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q08","question":"How many tables does the database schema contain?","expected":"10 tables","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q09","question":"Which table stores flagged and eliminated intercompany transactions?","expected":"intercompany_transactions","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q10","question":"What currencies does the system support?","expected":"USD, EUR, GBP, PLN, CAD, AUD, JPY, CHF, CNY","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q11","question":"Where are exchange rates fetched from and how long are they cached?","expected":"OpenExchangeRates; cached for 1 hour (configurable via CACHE_TTL_SECONDS)","must_cite":true,"category":"multi-hop","document":"readme"}
+{"id":"q12","question":"What is the default REDIS_URL?","expected":"redis://localhost:6379/0","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q13","question":"How long are JWT tokens valid?","expected":"24 hours","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q14","question":"Which endpoint generates a JWT token for a department?","expected":"POST /internal/tokens","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q15","question":"What three department API keys are configured?","expected":"finance_department, audit_team, and management","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q16","question":"When are transactions flagged as intercompany?","expected":"When customer/vendor name matches another group company or the description contains intercompany keywords from INTERCOMPANY_KEYWORDS","must_cite":true,"category":"multi-hop","document":"readme"}
+{"id":"q17","question":"What happens to detected intercompany transactions in the consolidated P&L?","expected":"They are eliminated before the final report is generated","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q18","question":"Which Python module contains consolidation logic and intercompany elimination?","expected":"accounting_engine.py","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q19","question":"What export formats does GET /internal/export support?","expected":"Excel, PDF, and CSV","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q20","question":"What is the payment term for invoices in the system documentation?","expected":"No information about invoice payment terms in the provided documents","must_cite":false,"category":"unanswerable","document":"readme"}
+{"id":"q21","question":"Which command starts the development server and on which port?","expected":"uvicorn main:app --reload --port 8000","must_cite":true,"category":"answerable","document":"readme"}
+{"id":"q22","question":"Where are QuickBooks OAuth tokens stored and when are they refreshed?","expected":"oauth_tokens table; automatically refreshed when a 401 is received from the QBO API","must_cite":true,"category":"multi-hop","document":"readme"}
+{"id":"q23","question":"What is the full name of the license in LICENSE.md?","expected":"Creative Commons Attribution-ShareAlike 4.0 International Public License","must_cite":true,"category":"answerable","document":"license"}
+{"id":"q24","question":"What are the License Elements of this Public License?","expected":"Attribution and ShareAlike","must_cite":true,"category":"answerable","document":"license"}
+{"id":"q25","question":"Are patent and trademark rights licensed under this Public License?","expected":"No, patent and trademark rights are not licensed","must_cite":true,"category":"answerable","document":"license"}
+{"id":"q26","question":"Are moral rights licensed under this Public License?","expected":"No, moral rights are not licensed under this Public License","must_cite":true,"category":"answerable","document":"license"}
+{"id":"q27","question":"Within how many days must a license violation be cured for automatic reinstatement?","expected":"30 days of discovery of the violation","must_cite":true,"category":"answerable","document":"license"}
+{"id":"q28","question":"Which sections survive termination of the Public License?","expected":"Sections 1, 5, 6, 7, and 8","must_cite":true,"category":"answerable","document":"license"}
+{"id":"q29","question":"What license must be applied to Adapted Material under ShareAlike?","expected":"A Creative Commons license with the same License Elements (this version or later) or a BY-SA Compatible License","must_cite":true,"category":"answerable","document":"license"}
+{"id":"q30","question":"Does the license specify the monthly price of the Financial Consolidation System?","expected":"No pricing information in the license document","must_cite":false,"category":"unanswerable","document":"license"}

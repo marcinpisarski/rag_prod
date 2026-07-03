@@ -1,0 +1,35 @@
+# Git and IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+env
+.pytest_cache
+.coverage
+htmlcov
+
+# Environment and secrets
+.env
+.env.local
+
+# Local databases and logs
+*.db
+*.sqlite
+logs
+*.log
+
+# Old app copy and docs not needed in image
+tmp
+tests
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

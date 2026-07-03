@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledge Base Search</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    header {
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.35rem; }
+    input[type="text"], input[type="url"], textarea, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.95rem;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 120px; gap: 1rem; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.9rem;
+    }
+    .options label { display: flex; align-items: center; gap: 0.4rem; margin: 0; color: var(--text); }
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
+    .status.ok { color: var(--success); }
+    .status.err { color: #ef4444; }
+    #progressLog {
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      max-height: 140px;
+      overflow-y: auto;
+      color: var(--muted);
+    }
+    #progressLog .step { padding: 0.15rem 0; }
+    #progressLog .step.active { color: var(--warning); }
+    #progressLog .step.done { color: var(--success); }
+    #answer {
+      white-space: pre-wrap;
+      min-height: 2rem;
+    }
+    .result-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.6rem;
+      background: var(--bg);
+    }
+    .result-card h4 { margin: 0 0 0.35rem; font-size: 0.9rem; }
+    .result-card .meta { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.4rem; }
+    .result-card p { margin: 0; font-size: 0.85rem; color: #c5d0de; }
+    .citation {
+      border-left: 3px solid var(--accent);
+      padding-left: 0.75rem;
+      margin: 0.5rem 0;
+      font-size: 0.85rem;
+    }
+    .hidden { display: none; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <h1>Knowledge Base Search</h1>
+      <p class="subtitle">Hybrid search · reranking · streaming answers</p>
+    </header>
+
+    <section class="panel">
+      <div class="row">
+        <div>
+          <label for="apiUrl">API base URL</label>
+          <input type="url" id="apiUrl" placeholder="http://localhost:8000" />
+        </div>
+        <div>
+          <label for="topK">Top K</label>
+          <input type="number" id="topK" min="1" max="20" value="5" />
+        </div>
+      </div>
+
+      <div style="margin-top: 0.75rem">
+        <label for="question">Question</label>
+        <textarea id="question" placeholder="Ask a question about your indexed documents..."></textarea>
+      </div>
+
+      <div class="options">
+        <label><input type="checkbox" id="includeAnswer" checked /> Generate answer (LLM)</label>
+        <label><input type="checkbox" id="useStream" checked /> Stream progress (SSE)</label>
+        <label><input type="checkbox" id="useRerank" checked /> Reranking</label>
+      </div>
+
+      <button id="searchBtn">Search</button>
+      <div id="connStatus" class="status">Checking API...</div>
+    </section>
+
+    <div class="grid-2">
+      <section class="panel">
+        <h3 style="margin-top:0;font-size:1rem">Progress</h3>
+        <div id="progressLog"></div>
+      </section>
+      <section class="panel">
+        <h3 style="margin-top:0;font-size:1rem">Answer</h3>
+        <div id="answer"></div>
+        <div id="citations" class="hidden" style="margin-top:0.75rem"></div>
+        <div id="timing" class="status"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h3 style="margin-top:0;font-size:1rem">Retrieved segments</h3>
+      <div id="results"></div>
+    </section>
+  </div>
+
+  <script>
+    const apiUrlInput = document.getElementById("apiUrl");
+    const questionInput = document.getElementById("question");
+    const topKInput = document.getElementById("topK");
+    const includeAnswerInput = document.getElementById("includeAnswer");
+    const useStreamInput = document.getElementById("useStream");
+    const useRerankInput = document.getElementById("useRerank");
+    const searchBtn = document.getElementById("searchBtn");
+    const connStatus = document.getElementById("connStatus");
+    const progressLog = document.getElementById("progressLog");
+    const answerEl = document.getElementById("answer");
+    const citationsEl = document.getElementById("citations");
+    const timingEl = document.getElementById("timing");
+    const resultsEl = document.getElementById("results");
+
+    apiUrlInput.value = window.location.origin;
+
+    function apiBase() {
+      return apiUrlInput.value.replace(/\/$/, "");
+    }
+
+    function logProgress(stage, message, state = "active") {
+      const existing = progressLog.querySelector(`[data-stage="${stage}"]`);
+      if (existing) {
+        existing.textContent = `${stage}: ${message}`;
+        existing.className = `step ${state}`;
+        return;
+      }
+      const line = document.createElement("div");
+      line.className = `step ${state}`;
+      line.dataset.stage = stage;
+      line.textContent = `${stage}: ${message}`;
+      progressLog.appendChild(line);
+      progressLog.scrollTop = progressLog.scrollHeight;
+    }
+
+    function resetUI() {
+      progressLog.innerHTML = "";
+      answerEl.textContent = "";
+      citationsEl.innerHTML = "";
+      citationsEl.classList.add("hidden");
+      timingEl.textContent = "";
+      resultsEl.innerHTML = "";
+    }
+
+    function renderResults(items) {
+      resultsEl.innerHTML = "";
+      if (!items.length) {
+        resultsEl.innerHTML = "<p class='status'>No results.</p>";
+        return;
+      }
+      items.forEach((item, i) => {
+        const card = document.createElement("div");
+        card.className = "result-card";
+        const score = item.rerank_score != null
+          ? `rerank ${item.rerank_score.toFixed(3)}`
+          : `score ${item.similarity_score.toFixed(3)}`;
+        card.innerHTML = `
+          <h4>#${i + 1} ${item.document_title || "Unknown"}</h4>
+          <div class="meta">segment ${item.segment_id} · page ${item.page_number ?? "—"} · ${score}</div>
+          <p>${escapeHtml(item.text)}</p>
+        `;
+        resultsEl.appendChild(card);
+      });
+    }
+
+    function renderCitations(sources) {
+      if (!sources || !sources.length) return;
+      citationsEl.classList.remove("hidden");
+      citationsEl.innerHTML = "<strong>Sources</strong>";
+      sources.forEach((src) => {
+        const div = document.createElement("div");
+        div.className = "citation";
+        div.innerHTML = `<strong>${escapeHtml(src.document_title)}</strong> (p.${src.page_number})<br>${escapeHtml(src.excerpt || "")}`;
+        citationsEl.appendChild(div);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text || "";
+      return div.innerHTML;
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${apiBase()}/health`);
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        connStatus.textContent = `Connected · ${data.service} v${data.version}`;
+        connStatus.className = "status ok";
+      } catch (err) {
+        connStatus.textContent = `Cannot reach API: ${err.message}`;
+        connStatus.className = "status err";
+      }
+    }
+
+    async function searchSync(payload) {
+      const res = await fetch(`${apiBase()}/api/queries/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || res.statusText);
+      }
+      return res.json();
+    }
+
+    async function searchStream(payload) {
+      const res = await fetch(`${apiBase()}/api/queries/search/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || res.statusText);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+          let event = "message";
+          let dataLine = "";
+          for (const line of part.split("\n")) {
+            if (line.startsWith("event: ")) event = line.slice(7);
+            if (line.startsWith("data: ")) dataLine = line.slice(6);
+          }
+          if (!dataLine) continue;
+          const data = JSON.parse(dataLine);
+          handleStreamEvent(event, data);
+        }
+      }
+    }
+
+    function handleStreamEvent(event, data) {
+      switch (event) {
+        case "progress":
+          logProgress(data.stage, data.message, "active");
+          break;
+        case "retrieval":
+          Object.keys(progressLog.dataset).length;
+          progressLog.querySelectorAll(".step.active").forEach((el) => el.className = "step done");
+          renderResults(data.results || []);
+          logProgress("retrieval", `${data.count} segments retrieved`, "done");
+          break;
+        case "token":
+          answerEl.textContent += data.content;
+          break;
+        case "answer":
+          renderCitations(data.sources);
+          break;
+        case "done":
+          timingEl.textContent = `Completed in ${data.execution_time_ms.toFixed(0)} ms`;
+          logProgress("done", "Search complete", "done");
+          break;
+        case "error":
+          throw new Error(data.message);
+      }
+    }
+
+    async function runSearch() {
+      const question = questionInput.value.trim();
+      if (question.length < 3) {
+        alert("Question must be at least 3 characters.");
+        return;
+      }
+
+      const payload = {
+        question,
+        top_k: parseInt(topKInput.value, 10) || 5,
+        include_answer: includeAnswerInput.checked,
+        use_rerank: useRerankInput.checked,
+      };
+
+      resetUI();
+      searchBtn.disabled = true;
+
+      try {
+        if (useStreamInput.checked) {
+          await searchStream(payload);
+        } else {
+          logProgress("loading", "Sending request...", "active");
+          const data = await searchSync(payload);
+          logProgress("loading", "Done", "done");
+          renderResults(data.retrieval_results || []);
+          if (data.answer) {
+            answerEl.textContent = data.answer.content;
+            renderCitations(data.answer.sources);
+          }
+          timingEl.textContent = `Completed in ${data.execution_time_ms.toFixed(0)} ms` +
+            (data.rerank_applied ? " · reranked" : "");
+        }
+      } catch (err) {
+        connStatus.textContent = err.message;
+        connStatus.className = "status err";
+        logProgress("error", err.message, "active");
+      } finally {
+        searchBtn.disabled = false;
+      }
+    }
+
+    searchBtn.addEventListener("click", runSearch);
+    apiUrlInput.addEventListener("change", checkHealth);
+    checkHealth();
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+# Full local stack: API + PostgreSQL (pgvector) + Qdrant
+#
+# Usage:
+#   cp .env.example .env   # set LLM_API_KEY
+#   docker compose up --build
+#
+# API: http://localhost:8000/api/docs
+
+services:
+  db:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_DB: kb_search
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d kb_search"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://rag_user:rag_pass@db:5432/kb_search
+      VECTOR_DB_PROVIDER: qdrant
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      db:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    volumes:
+      - kb_uploads:/tmp/kb_documents
+
+volumes:
+  pgdata:
+  qdrant_data:
+  kb_uploads:
